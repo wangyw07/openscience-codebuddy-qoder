@@ -1,0 +1,9 @@
+{
+  "$schema": "https://syntheticsciences.ai/config.json",
+  "model": "codebuddy/auto",
+  "enabled_providers": [
+    "qoder",
+    "codebuddy",
+    "deepseek"
+  ]
+}

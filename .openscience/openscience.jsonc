@@ -1,0 +1,106 @@
+{
+  "$schema": "https://syntheticsciences.ai/config.json",
+  // "plugin": ["openscience-openai-codex-auth"],
+  "model": "codebuddy/glm-5.2",
+  "small_model": "codebuddy/deepseek-v4-flash",
+  "provider": {
+    "codebuddy": {
+      "name": "CodeBuddy",
+      "npm": "@ai-sdk/openai-compatible",
+      "env": ["CODEBUDDY_API_KEY"],
+      "api": "https://www.codebuddy.cn/v2",
+      "options": {
+        "baseURL": "https://www.codebuddy.cn/v2"
+      },
+      "models": {
+        "auto": {
+          "name": "CodeBuddy Auto",
+          "tool_call": true,
+          "temperature": true,
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "glm-5.2": {
+          "name": "GLM-5.2",
+          "tool_call": true,
+          "temperature": true,
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "glm-5.1": {
+          "name": "GLM-5.1",
+          "tool_call": true,
+          "temperature": true,
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "glm-5v-turbo": {
+          "name": "GLM-5V Turbo",
+          "tool_call": true,
+          "temperature": true,
+          "attachment": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "kimi-k2.7": {
+          "name": "Kimi K2.7",
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": true,
+          "interleaved": { "field": "reasoning_content" },
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "kimi-k2.6": {
+          "name": "Kimi K2.6",
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": true,
+          "interleaved": { "field": "reasoning_content" },
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "kimi-k2.5": {
+          "name": "Kimi K2.5",
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": true,
+          "interleaved": { "field": "reasoning_content" },
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "deepseek-v4-pro": {
+          "name": "DeepSeek V4 Pro",
+          "tool_call": true,
+          "temperature": true,
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "deepseek-v4-flash": {
+          "name": "DeepSeek V4 Flash",
+          "tool_call": true,
+          "temperature": true,
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "minimax-m3-pay": {
+          "name": "MiniMax M3",
+          "tool_call": true,
+          "temperature": true,
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "hy3-preview-agent": {
+          "name": "Hunyuan 3 Preview Agent",
+          "tool_call": true,
+          "temperature": true,
+          "limit": { "context": 200000, "output": 8192 }
+        }
+      }
+    },
+    "synsci": {
+      "options": {}
+    }
+  },
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp"
+    }
+  },
+  "tools": {
+    "github-triage": false,
+    "github-pr-search": false
+  }
+}

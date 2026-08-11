@@ -233,6 +233,59 @@ test("Codex OAuth exposes the GPT-5.6 family as subscription models", async () =
   }
 })
 
+test("codebuddy key saved via the credentials panel reports source 'api' with no prior openscience.json entry", async () => {
+  // Regression: codebuddy/qoder aren't in the models.dev catalog, so before a
+  // config.provider entry exists, `database[providerID]` was undefined when
+  // the "load apikeys" pass ran — mergeProvider silently dropped the fresh
+  // Auth key, and the CUSTOM_LOADERS pass later recreated the provider from
+  // scratch labeled source "custom" instead of "api". ProviderKeys.tsx filters
+  // its connected list to source === "api", so the just-saved key never
+  // appeared there.
+  await using tmp = await tmpdir({})
+  await Auth.set("codebuddy", { type: "api", key: "ck_test_key" })
+  try {
+    await Instance.provide({
+      directory: tmp.path,
+      init: async () => {
+        Provider.invalidate()
+      },
+      fn: async () => {
+        const providers = await Provider.list()
+        const codebuddy = providers["codebuddy"]
+        expect(codebuddy).toBeDefined()
+        expect(codebuddy.source).toBe("api")
+        expect(codebuddy.key).toBe("ck_test_key")
+      },
+    })
+  } finally {
+    await Auth.remove("codebuddy")
+    Provider.invalidate()
+  }
+})
+
+test("qoder key saved via the credentials panel reports source 'api' with no prior openscience.json entry", async () => {
+  await using tmp = await tmpdir({})
+  await Auth.set("qoder", { type: "api", key: "pt-test-key" })
+  try {
+    await Instance.provide({
+      directory: tmp.path,
+      init: async () => {
+        Provider.invalidate()
+      },
+      fn: async () => {
+        const providers = await Provider.list()
+        const qoder = providers["qoder"]
+        expect(qoder).toBeDefined()
+        expect(qoder.source).toBe("api")
+        expect(qoder.key).toBe("pt-test-key")
+      },
+    })
+  } finally {
+    await Auth.remove("qoder")
+    Provider.invalidate()
+  }
+})
+
 test("seeded catalog exposes GPT-5.6, Grok 4.5, and Muse Spark 1.1 for direct BYOK", async () => {
   await using tmp = await tmpdir({})
   try {

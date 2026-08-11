@@ -1311,6 +1311,21 @@ export namespace Provider {
     const modelsDev = await ModelsDev.get()
     const database = mapValues(modelsDev, fromModelsDevProvider)
 
+    // qoder/codebuddy aren't in the models.dev catalog, so without a prior
+    // entry in openscience.json `database[providerID]` stays undefined here.
+    // The "load env"/"load apikeys" passes below only ever *merge* onto an
+    // existing `database` entry (mergeProvider bails out silently when
+    // neither `providers[providerID]` nor `database[providerID]` exists), so
+    // a brand-new key for either provider was dropped on the first pass and
+    // only recreated by the CUSTOM_LOADERS seeding further down — by then
+    // `providers[providerID]` didn't exist yet either, so that recreation
+    // mislabeled the source "custom" instead of the credential's real
+    // "env"/"api" origin. Seed the catalog entry here so the credential
+    // passes land on it like every models.dev-backed provider does.
+    if (!database.qoder) database.qoder = fromModelsDevProvider(qoderModelsDevProvider() as ModelsDev.Provider)
+    if (!database.codebuddy)
+      database.codebuddy = fromModelsDevProvider(codebuddyModelsDevProvider() as ModelsDev.Provider)
+
     const disabled = new Set(config.disabled_providers ?? [])
     const enabled = config.enabled_providers ? new Set(config.enabled_providers) : null
     // Managed wallet ⇒ curated routes only. OpenRouter handles the aggregated

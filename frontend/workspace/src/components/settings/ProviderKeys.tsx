@@ -1,57 +1,11 @@
 import { For, Show, createMemo, createSignal } from "solid-js"
 import { Button } from "@synsci/ui/button"
-import type { Provider } from "@synsci/sdk/v2/client"
 import { StatusDot } from "@/atlas/shared/StatusDot"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { useGlobalSync } from "@/context/global-sync"
 import { useProviders } from "@/hooks/use-providers"
-import { isUserProviderConnection } from "@/context/model-catalog"
 import { MODEL_PROVIDERS, MODEL_PROVIDER_LABELS, modelProvider } from "./model-providers"
 import { credentialChange } from "./credential-change"
-
-/**
- * `note` says where a key that this panel cannot delete actually lives, so the
- * reader knows where to go and change it. Every non-removable source used to
- * render one blanket "managed externally", which is wrong for a key the user
- * set themselves in a .env or a config file — nobody else manages it, and the
- * phrase suggests an administrator does.
- */
-const SOURCES: Record<Provider["source"], { label: string; removable: boolean; title: string; note?: string }> = {
-  api: {
-    label: "local file",
-    removable: true,
-    title: "API key stored in the owner-only OpenScience auth file, not the system keychain",
-  },
-  env: {
-    label: "environment",
-    removable: false,
-    note: "set in your .env or shell",
-    title: "API key supplied by an environment variable; remove it where it is defined",
-  },
-  config: {
-    label: "config",
-    removable: false,
-    note: "set in openscience.json",
-    title: "API key supplied by openscience.json; edit that file to remove it",
-  },
-  custom: {
-    label: "custom",
-    removable: false,
-    note: "set in openscience.json",
-    title: "Custom provider supplied by openscience.json; edit that file to remove it",
-  },
-  // Unreachable while isUserProviderConnection filters an Atlas-carried route
-  // out of this list — it is not a connection the reader set up. Kept because
-  // Provider["source"] has to be covered exhaustively, and so the row would
-  // still describe itself honestly rather than fall through to "local file" if
-  // that filter is ever relaxed.
-  managed: {
-    label: "billed from wallet",
-    removable: false,
-    note: "routed through OpenScience credits",
-    title: "Routed through the Atlas managed proxy and billed to your OpenScience credits",
-  },
-}
 
 export function ProviderKeys(props: { onError?: (error: string | undefined) => void }) {
   const sdk = useGlobalSDK()
@@ -60,19 +14,17 @@ export function ProviderKeys(props: { onError?: (error: string | undefined) => v
   const [provider, setProvider] = createSignal<string>(MODEL_PROVIDERS[0].id)
   const [key, setKey] = createSignal("")
   const [saving, setSaving] = createSignal(false)
+  // Only keys saved through this panel (Auth.set → source "api"). A provider
+  // pre-wired from openscience.json/.env is a real credential too, but an
+  // unremovable "config"/"environment" row here reads as "you already set
+  // this" to someone who never touched Settings — this list should be
+  // exactly what "remove" can actually remove.
   const connected = createMemo(() =>
     providers
       .connected()
       .filter((item) => MODEL_PROVIDERS.some((provider) => provider.id === item.id))
-      .filter((item) =>
-        isUserProviderConnection({
-          providerID: item.id,
-          source: item.source,
-          billing: sync.data.config.billing?.llm,
-        }),
-      ),
+      .filter((item) => item.source === "api"),
   )
-  const source = (item: { id: string }) => SOURCES[(item as { source?: Provider["source"] }).source ?? "api"]
 
   const save = async () => {
     const value = key().trim()
@@ -159,23 +111,14 @@ export function ProviderKeys(props: { onError?: (error: string | undefined) => v
                   </span>
                   <span
                     class="flex-shrink-0 rounded-[4px] border border-border-weak-base px-1.5 py-0.5 text-11-regular text-text-weak"
-                    title={source(item).title}
+                    title="API key stored in the owner-only OpenScience auth file, not the system keychain"
                   >
-                    {source(item).label}
+                    local file
                   </span>
                 </div>
-                <Show
-                  when={source(item).removable}
-                  fallback={
-                    <span class="text-11-regular text-text-weak" title={source(item).title}>
-                      {source(item).note ?? "managed externally"}
-                    </span>
-                  }
-                >
-                  <Button size="small" variant="secondary" onClick={() => void remove(item.id)}>
-                    remove
-                  </Button>
-                </Show>
+                <Button size="small" variant="secondary" onClick={() => void remove(item.id)}>
+                  remove
+                </Button>
               </div>
             )}
           </For>

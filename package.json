@@ -6,8 +6,8 @@
   "type": "module",
   "packageManager": "bun@1.3.14",
   "scripts": {
-    "dev": "bun --env-file=./.env run --cwd backend/cli --conditions=browser src/index.ts",
-    "dev:local": "SYNSC_API_BASE=http://localhost:8001 SYNSC_AUTH_URL=http://localhost:8001/auth/cli bun --env-file=./.env run --cwd backend/cli --conditions=browser src/index.ts",
+    "dev": "bun run --cwd backend/cli script/ensure-web-assets.ts && bun --env-file=./.env run --cwd backend/cli --conditions=browser src/index.ts",
+    "dev:local": "bun run --cwd backend/cli script/ensure-web-assets.ts && SYNSC_API_BASE=http://localhost:8001 SYNSC_AUTH_URL=http://localhost:8001/auth/cli bun --env-file=./.env run --cwd backend/cli --conditions=browser src/index.ts",
     "typecheck": "turbo typecheck",
     "test": "bun run --cwd backend/cli test",
     "eval:launch:validate": "bun evals/launch/validate.ts",

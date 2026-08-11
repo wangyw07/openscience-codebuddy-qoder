@@ -82,9 +82,18 @@ bun install
 # 或
 # QODER_API_KEY=pt-...
 
-# 4. 启动开发态工作区（会打开浏览器）
+# 4. 启动开发态工作区（首次会自动构建前端；会打开浏览器）
 bun dev
 ```
+
+> 若打开 `http://localhost:4096` 出现 **404 Not Found**，说明前端资源尚未生成。重新执行一次 `bun dev`（会自动构建），或手动：
+>
+> ```bash
+> bun run --cwd frontend/workspace build
+> bun run --cwd backend/cli script/generate-web-assets.ts
+> bun dev
+> ```
+
 ---
 
 ## 配置模型

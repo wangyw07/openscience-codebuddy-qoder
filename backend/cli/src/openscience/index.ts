@@ -1056,11 +1056,16 @@ export namespace OpenScience {
       if (!value) continue
       if (CONTROL_PLANE_ENV_KEYS.has(key)) continue
       if (isManagedAtlasKey(value)) continue
+      // Windows env var names are case-insensitive but keep whatever casing the
+      // OS handed us (`Path`, `SystemRoot`, ...) — compare uppercased so the
+      // POSIX-cased allowlist below still matches on Windows.
+      const upper = key.toUpperCase()
       // Entries ending in `_` (LC_, XDG_) are true prefixes; the rest are exact
       // names. Treating all as prefixes let HOME match HOMEBREW_GITHUB_API_TOKEN,
       // USER match USERPROFILE, etc. — over-broad passthrough.
       const isSafe =
-        SAFE_ENV_PREFIXES.some((p) => (p.endsWith("_") ? key.startsWith(p) : key === p)) || SAFE_SYNCED_KEYS.has(key)
+        SAFE_ENV_PREFIXES.some((p) => (p.endsWith("_") ? upper.startsWith(p) : upper === p)) ||
+        SAFE_SYNCED_KEYS.has(key)
       if (isSafe || !syncedSecretValues.has(key)) {
         result[key] = value
       }
@@ -1076,9 +1081,19 @@ export namespace OpenScience {
     const result: Record<string, string> = {}
     for (const [key, value] of Object.entries(env)) {
       if (!value) continue
+      // Same case-insensitive comparison as filterEnvForSubprocess above — on
+      // Windows the real keys are `Path`, `SystemRoot`, `windir`, `ComSpec`,
+      // not the uppercase POSIX spelling in these lists. Without this a Windows
+      // kernel subprocess loses PATH/SystemRoot entirely: Python still spawns
+      // (Bun/Node resolve the binary via the parent's PATH), but the child then
+      // lacks SystemRoot, which Windows' own DLL loader, font enumeration, and
+      // console/locale init rely on — the process starts but calls that touch
+      // those subsystems (e.g. matplotlib's first font-cache build) can stall
+      // or misbehave rather than failing fast.
+      const upper = key.toUpperCase()
       const runtime =
-        SAFE_ENV_PREFIXES.some((prefix) => (prefix.endsWith("_") ? key.startsWith(prefix) : key === prefix)) ||
-        KERNEL_RUNTIME_KEYS.has(key)
+        SAFE_ENV_PREFIXES.some((prefix) => (prefix.endsWith("_") ? upper.startsWith(prefix) : upper === prefix)) ||
+        KERNEL_RUNTIME_KEYS.has(upper)
       if (runtime) result[key] = value
     }
     return result

@@ -70,6 +70,36 @@ test("kernel env filtering keeps runtime configuration but drops credentials", (
   })
 })
 
+test("kernel env filtering keeps Windows-cased runtime vars (Path, SystemRoot, windir, ComSpec)", () => {
+  // Windows reports these with OS-native casing, not the POSIX uppercase
+  // spelling — dropping them silently starved kernel subprocesses of PATH and
+  // SystemRoot, which Windows' DLL loader/font enumeration rely on (#notebook
+  // hangs on Windows).
+  const filtered = OpenScience.filterEnvForKernel({
+    Path: "C:\\Windows;C:\\Python",
+    SystemRoot: "C:\\Windows",
+    windir: "C:\\Windows",
+    ComSpec: "C:\\Windows\\System32\\cmd.exe",
+    PATHEXT: ".COM;.EXE",
+    OPENAI_API_KEY: "sk-secret",
+  })
+
+  expect(filtered).toEqual({
+    Path: "C:\\Windows;C:\\Python",
+    SystemRoot: "C:\\Windows",
+    windir: "C:\\Windows",
+    ComSpec: "C:\\Windows\\System32\\cmd.exe",
+    PATHEXT: ".COM;.EXE",
+  })
+})
+
+test("subprocess env filtering keeps Windows-cased PATH", () => {
+  const filtered = OpenScience.filterEnvForSubprocess({
+    Path: "C:\\Windows;C:\\Python",
+  })
+  expect(filtered.Path).toBe("C:\\Windows;C:\\Python")
+})
+
 test("kernel credential mask covers Atlas and OpenScience credential stores", () => {
   const paths = OpenScience.kernelSensitivePaths()
   const names = paths.map((value) => path.basename(value))

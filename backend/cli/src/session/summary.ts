@@ -164,10 +164,11 @@ export namespace SessionSummary {
         agent,
         user: userMsg,
         tools: {},
+        // Same as session title: follow the message's model unless the title
+        // agent has an explicit model override in config.
         model: agent.model
           ? await Provider.getModel(agent.model.providerID, agent.model.modelID)
-          : ((await Provider.getSmallModel(userMsg.model.providerID)) ??
-            (await Provider.getModel(userMsg.model.providerID, userMsg.model.modelID))),
+          : await Provider.getModel(userMsg.model.providerID, userMsg.model.modelID),
         small: true,
         messages: [
           {

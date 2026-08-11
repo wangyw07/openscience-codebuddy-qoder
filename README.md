@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="assets/wordmark.svg" alt="OpenScience" width="440">
-
 ### 面向科研的开源 AI 工作台（国内模型）
 
 基于 [OpenScience](https://github.com/synthetic-sciences/OpenScience) 的定制分支：内置 **腾讯 CodeBuddy** 与 **Qoder** 作为首选 BYOK 模型提供商，也可用其他主流厂商的自有 API Key。
@@ -23,6 +21,22 @@
 
 ---
 
+## 模型接入路径
+
+OpenScience 访问底层大模型有两条独立路径，可按需选用或混用：
+
+<img src="assets/model-access-paths.png" alt="OpenScience 模型接入路径：CodeBuddy/Qoder 适配器 vs 直连第三方 API" width="800">
+
+| | 路径一：CodeBuddy / Qoder 适配器 | 路径二：直连第三方 API |
+| --- | --- | --- |
+| **链路** | OpenScience → CodeBuddy/Qoder 适配器 → CodeBuddy/Qoder 平台 API/服务 → 平台可用模型（GLM-5.2、DeepSeek、Qwen、Kimi 等） | OpenScience → 各模型官方/第三方 API 适配层 → 智谱 GLM API、DeepSeek API、Qwen API、Kimi API 等 |
+| **密钥管理** | 统一入口；OpenScience 不直接持有各家模型厂商 API Key，由 CodeBuddy / Qoder 统一认证与平台能力访问模型 | 需分别配置 GLM / DeepSeek / Qwen / Kimi 等各自的 API Key |
+| **维护成本** | 低：只需维护 CodeBuddy / Qoder 一套密钥 | 较高：OpenScience 直接对接各模型厂商接口，需分别维护不同平台的 API Key、模型名与兼容逻辑 |
+
+本分支默认优先展示路径一（CodeBuddy、Qoder），同时保留路径二以兼容 Anthropic、OpenAI、Google、OpenRouter 等其他厂商的自有 Key（见下文「其他提供商」）。
+
+---
+
 ## 功能概览
 
 - **完整科研闭环**：文献、假设、写代码、跑实验、分析与撰写，可在一次会话中连续完成
@@ -40,7 +54,15 @@
 - 现代浏览器（工作区在本地起服务后于浏览器打开）
 - 至少一个模型提供商的 API Key（推荐 CodeBuddy 或 Qoder）
 
-Linux 二进制部署时：内核需 ≥ 5.1；另有 glibc / musl 两套构建可选。
+未安装 Bun 时：
+
+```bash
+# Windows (PowerShell)
+powershell -c "irm bun.sh/install.ps1 | iex"
+
+# macOS / Linux
+curl -fsSL https://bun.sh/install | bash
+```
 
 ---
 
@@ -69,8 +91,8 @@ bun dev
 
 密钥可通过以下方式配置（任选）：
 
+- 工作区 **设置 → Models → Provider keys**（模型密钥在此）
 - 环境变量，或项目根目录 `.env` / `.env.local`（shell 导出优先于 `.env`）
-- 工作区 **设置 → Models → Provider keys**（模型密钥在此；**Credentials** 面板用于 OpenAlex 等非模型外部服务，不是填 CodeBuddy/Qoder Key 的地方）
 - CLI（源码态）：`bun --env-file=./.env run --cwd backend/cli --conditions=browser src/index.ts keys add`  
   （若已安装 `openscience` 二进制，则等价于 `openscience keys add`）
 

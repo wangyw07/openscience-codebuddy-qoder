@@ -1138,7 +1138,9 @@ export namespace Config {
       model: z.string().describe("Model to use in the format of provider/model, eg anthropic/claude-2").optional(),
       small_model: z
         .string()
-        .describe("Small model to use for tasks like title generation in the format of provider/model")
+        .describe(
+          "Optional small model (provider/model). Session titles and compaction follow the session chat model; this value is unused unless something calls getSmallModel().",
+        )
         .optional(),
       default_agent: z
         .string()

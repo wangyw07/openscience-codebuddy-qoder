@@ -54,7 +54,6 @@ import { PermissionNext } from "@/permission/next"
 import { SessionStatus } from "./status"
 import { SessionFilesystem } from "./filesystem"
 import { LLM } from "./llm"
-import { iife } from "@/util/iife"
 import { correctImageMime } from "@/util/image"
 import { Shell } from "@/shell/shell"
 import { Truncate } from "@/tool/truncation"
@@ -77,6 +76,10 @@ export namespace SessionPrompt {
   // Science agents that dispatch GPU/compute work and should honor billing.compute.
   const COMPUTE_AGENTS = new Set(["research", "biology", "physics", "ml"])
   const SKILL_ROUTING_AGENTS = new Set(["research", "biology", "physics", "ml"])
+  // Cap on how many of the session's early turns will retry title generation
+  // after a failed attempt (e.g. transient provider error). Keeps a broken
+  // title model from adding an extra LLM call to every single turn forever.
+  const TITLE_RETRY_TURNS = 3
 
   const state = Instance.state(
     () => {
@@ -2254,10 +2257,15 @@ or internal reasoning. Call plan_exit when the plan is ready for approval.
     )
     if (firstRealUserIdx === -1) return
 
-    const isFirst =
-      input.history.filter((m) => m.info.role === "user" && !m.parts.every((p) => "synthetic" in p && p.synthetic))
-        .length === 1
-    if (!isFirst) return
+    // Title is always derived from the first real user turn, but we retry on
+    // a few subsequent turns too — a lone failed attempt (e.g. the title
+    // model briefly out of quota) must not strand the session on "New
+    // session" forever. Bounded to avoid firing an extra LLM call on every
+    // single turn indefinitely if the title model stays broken.
+    const realUserCount = input.history.filter(
+      (m) => m.info.role === "user" && !m.parts.every((p) => "synthetic" in p && p.synthetic),
+    ).length
+    if (realUserCount > TITLE_RETRY_TURNS) return
 
     // Gather all messages up to and including the first real user message for context
     // This includes any shell/subtask executions that preceded the user's first prompt
@@ -2271,12 +2279,13 @@ or internal reasoning. Call plan_exit when the plan is ready for approval.
 
     const agent = await Agent.get("title")
     if (!agent) return
-    const model = await iife(async () => {
-      if (agent.model) return await Provider.getModel(agent.model.providerID, agent.model.modelID)
-      return (
-        (await Provider.getSmallModel(input.providerID)) ?? (await Provider.getModel(input.providerID, input.modelID))
-      )
-    })
+    // Follow the session's current model so title generation uses the same
+    // provider/key the user already picked (not a separate small_model that
+    // may point at a different provider with no quota). Explicit agent.model
+    // in config still wins as an intentional override.
+    const model = agent.model
+      ? await Provider.getModel(agent.model.providerID, agent.model.modelID)
+      : await Provider.getModel(input.providerID, input.modelID)
     const result = await LLM.stream({
       agent,
       user: firstRealUser.info as MessageV2.User,

@@ -126,7 +126,10 @@ export default function Models() {
                 placeholder="Auto"
               />
             </Row>
-            <Row title="Background model" detail="Used for titles and compact background work.">
+            <Row
+              title="Background model"
+              detail="Legacy small_model setting. Titles and compaction follow the session chat model."
+            >
               <Select
                 options={options()}
                 current={background()}

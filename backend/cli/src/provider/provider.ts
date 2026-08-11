@@ -1668,14 +1668,20 @@ export namespace Provider {
 
     // Config merge can drop function-valued options (or leave a catalog-only
     // provider without the Cosy/stream adapters). Re-pin after config.
+    //
+    // Auth (a key the user explicitly saved in Settings → Provider keys) is
+    // checked FIRST, ahead of env and config. Settings promises that a saved
+    // key is what's used and can always be removed — a shared openscience.json
+    // baking in a team key (or a stale env var) must not silently keep
+    // winning over a key the user deliberately added to replace it.
     if (providers.qoder) {
       const auth = await Auth.get("qoder")
       const apiKey = resolveQoderApiKey(
-        typeof providers.qoder.options?.["apiKey"] === "string" ? providers.qoder.options["apiKey"] : undefined,
+        auth?.type === "api" ? auth.key : undefined,
         Env.get("QODER_API_KEY"),
         Env.get("QODER_PAT"),
         Env.get("QODER_PERSONAL_ACCESS_TOKEN"),
-        auth?.type === "api" ? auth.key : undefined,
+        typeof providers.qoder.options?.["apiKey"] === "string" ? providers.qoder.options["apiKey"] : undefined,
         providers.qoder.key,
       )
       providers.qoder.options = {
@@ -1684,16 +1690,16 @@ export namespace Provider {
         baseURL: qoderBaseURL((name) => Env.get(name)),
         fetch: qoderFetch,
       }
-      if (apiKey && !providers.qoder.key) providers.qoder.key = apiKey
+      providers.qoder.key = apiKey
     }
     if (providers.codebuddy) {
       const auth = await Auth.get("codebuddy")
       const apiKey = resolveQoderApiKey(
+        auth?.type === "api" ? auth.key : undefined,
+        Env.get("CODEBUDDY_API_KEY"),
         typeof providers.codebuddy.options?.["apiKey"] === "string"
           ? providers.codebuddy.options["apiKey"]
           : undefined,
-        Env.get("CODEBUDDY_API_KEY"),
-        auth?.type === "api" ? auth.key : undefined,
         providers.codebuddy.key,
       )
       providers.codebuddy.options = {
@@ -1702,7 +1708,7 @@ export namespace Provider {
         baseURL: codebuddyBaseURL((name) => Env.get(name)),
         fetch: codebuddyFetch,
       }
-      if (apiKey && !providers.codebuddy.key) providers.codebuddy.key = apiKey
+      providers.codebuddy.key = apiKey
     }
 
     for (const [providerID, provider] of Object.entries(providers)) {

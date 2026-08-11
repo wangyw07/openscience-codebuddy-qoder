@@ -118,7 +118,7 @@ export default function Models() {
                 options={options()}
                 current={primary()}
                 value={(option) => option.value}
-                label={(option) => option.label}
+                label={(option) => `${option.provider} / ${option.label}`}
                 onSelect={(option) => option && void sync.updateConfig({ model: option.value })}
                 variant="secondary"
                 size="small"
@@ -134,7 +134,7 @@ export default function Models() {
                 options={options()}
                 current={background()}
                 value={(option) => option.value}
-                label={(option) => option.label}
+                label={(option) => `${option.provider} / ${option.label}`}
                 onSelect={(option) => option && void sync.updateConfig({ small_model: option.value })}
                 variant="secondary"
                 size="small"

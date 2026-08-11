@@ -243,7 +243,11 @@ export namespace Provider {
     provider: Info,
     options: Record<string, unknown> = provider.options ?? {},
   ): string | undefined {
-    const optionKey = typeof options["apiKey"] === "string" ? (options["apiKey"] as string) : undefined
+    // Empty / unsubstituted `{env:VAR}` placeholders from openscience.json must
+    // not shadow a real Auth/UI or env key — otherwise we send
+    // `Authorization: Bearer ` and the upstream replies "Authorization Required".
+    const raw = typeof options["apiKey"] === "string" ? options["apiKey"] : undefined
+    const optionKey = raw && !raw.startsWith("{env:") ? raw : undefined
     return (
       optionKey ??
       provider.key ??
@@ -1683,11 +1687,22 @@ export namespace Provider {
       if (apiKey && !providers.qoder.key) providers.qoder.key = apiKey
     }
     if (providers.codebuddy) {
+      const auth = await Auth.get("codebuddy")
+      const apiKey = resolveQoderApiKey(
+        typeof providers.codebuddy.options?.["apiKey"] === "string"
+          ? providers.codebuddy.options["apiKey"]
+          : undefined,
+        Env.get("CODEBUDDY_API_KEY"),
+        auth?.type === "api" ? auth.key : undefined,
+        providers.codebuddy.key,
+      )
       providers.codebuddy.options = {
         ...providers.codebuddy.options,
+        ...(apiKey ? { apiKey } : {}),
         baseURL: codebuddyBaseURL((name) => Env.get(name)),
         fetch: codebuddyFetch,
       }
+      if (apiKey && !providers.codebuddy.key) providers.codebuddy.key = apiKey
     }
 
     for (const [providerID, provider] of Object.entries(providers)) {
@@ -1917,7 +1932,7 @@ export namespace Provider {
       }
 
       if (!options["baseURL"] && model.api.url) options["baseURL"] = model.api.url
-      if (options["apiKey"] === undefined) {
+      if (options["apiKey"] === undefined || options["apiKey"] === "") {
         // Prefer provider.key, then any configured env alias (qoder has three).
         const resolved = effectiveKey(provider, options)
         if (resolved) options["apiKey"] = resolved
